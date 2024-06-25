@@ -5,6 +5,12 @@ import { TransformWrapper, TransformComponent } from "react-zoom-pan-pinch";
 const ZoomableDraggableImage = ({ backgroundUrl, overlayUrl }) => {
   const [overlayPosition, setOverlayPosition] = useState({ x: 0, y: 0 });
   const [overlaySize, setOverlaySize] = useState({ width: 0, height: 0 });
+  const backgroundRef = useRef(null); // Reference to background image for dimensions
+  const [zoomScale, setZoomScale] = useState(1); // State to track zoom scale
+
+  const handleZoomChange = (newScale) => {
+    setZoomScale(newScale);
+  };
 
   const handleOverlayDrag = (e, data) => {
     setOverlayPosition({ x: data.x, y: data.y });
@@ -16,28 +22,42 @@ const ZoomableDraggableImage = ({ backgroundUrl, overlayUrl }) => {
 
   const handleDownload = () => {
     const canvas = document.createElement("canvas");
-    canvas.width = overlaySize.width;
-    canvas.height = overlaySize.height;
+    const backgroundImg = backgroundRef.current;
+
+    // Ensure background image is loaded before proceeding
+    if (!backgroundImg.complete) {
+      alert("Background image is not fully loaded. Please wait and try again.");
+      return;
+    }
+
+    // Calculate canvas dimensions considering zoom scale
+    const canvasWidth = overlaySize.width * zoomScale;
+    const canvasHeight = overlaySize.height * zoomScale;
+
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
     const ctx = canvas.getContext("2d");
 
-    // Draw the background image to the canvas
-    const background = new Image();
-    background.onload = () => {
-      ctx.drawImage(background, -overlayPosition.x, -overlayPosition.y);
-      // Draw the overlay image to the canvas
-      const overlay = new Image();
-      overlay.onload = () => {
-        ctx.drawImage(overlay, 0, 0);
-        // Convert canvas to data URL and initiate download
-        const dataUrl = canvas.toDataURL("image/jpeg");
-        const a = document.createElement("a");
-        a.href = dataUrl;
-        a.download = "cropped_image.jpg";
-        a.click();
-      };
-      overlay.src = overlayUrl;
+    // Calculate position adjustments based on overlay's position relative to background
+    const overlayBounds = backgroundImg.getBoundingClientRect();
+    const posX = (overlayPosition.x - overlayBounds.left) * zoomScale;
+    const posY = (overlayPosition.y - overlayBounds.top) * zoomScale;
+
+    // Draw background image to canvas adjusted by overlay's position and zoom
+    ctx.drawImage(backgroundImg, -posX, -posY, backgroundImg.width * zoomScale, backgroundImg.height * zoomScale);
+
+    // Draw overlay image to canvas
+    const overlay = new Image();
+    overlay.onload = () => {
+      ctx.drawImage(overlay, 0, 0, overlaySize.width * zoomScale, overlaySize.height * zoomScale);
+      // Convert canvas to data URL and initiate download
+      const dataUrl = canvas.toDataURL("image/jpeg");
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = "cropped_image.jpg";
+      a.click();
     };
-    background.src = backgroundUrl;
+    overlay.src = overlayUrl;
   };
 
   return (
@@ -46,6 +66,7 @@ const ZoomableDraggableImage = ({ backgroundUrl, overlayUrl }) => {
         defaultScale={1}
         defaultPositionX={0}
         defaultPositionY={0}
+        onZoomChange={handleZoomChange}
       >
         {({ zoomIn, zoomOut, resetTransform }) => (
           <div>
@@ -77,6 +98,7 @@ const ZoomableDraggableImage = ({ backgroundUrl, overlayUrl }) => {
             </Draggable>
             <TransformComponent>
               <img
+                ref={backgroundRef}
                 src={backgroundUrl}
                 alt="Background"
                 className="background-image"
