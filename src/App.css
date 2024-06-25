@@ -15,16 +15,30 @@
 }
 
 .tools button {
-  margin: 0 5px;
+  margin-right: 5px;
   padding: 5px 10px;
   font-size: 16px;
   cursor: pointer;
 }
 
-.draggable-image {
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: grab;
+  z-index: 1;
+}
+
+.overlay-image {
+  display: block;
   width: 100%;
   height: auto;
-  cursor: grab;
+}
+
+.background-image {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 .App {
@@ -34,11 +48,4 @@
   display: flex;
   justify-content: center;
   align-items: center;
-}
-
-.overlay-image {
-  position: absolute;
-  width: 200px;
-  height: 200px;
-  z-index: 1; /* Ensure the overlay image is above the background image */
 }
